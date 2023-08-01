@@ -106,7 +106,8 @@ def posts(request, posts):
         posts = Post.objects.filter(user__username=request.GET.get('username'))
     elif posts == "following":
         # Get the user IDs of the users followed by the current user
-        followed_user_ids = Follow.objects.filter(follower=request.user).values_list('followed_id', flat=True)
+        followed_user = Follow.objects.filter(follower=request.user)
+        followed_user_ids = followed_user.values_list('followed_id', flat=True)
         # Get posts by followed users in reverse chronological order
         posts = Post.objects.filter(user__id__in=followed_user_ids)
     else:
@@ -127,7 +128,7 @@ def posts(request, posts):
     for post in page_obj:
         serialized_post = post.serialize()
 
-        # Check if the current user's username is in the list of usernames of users who liked the post
+        # Check if the current user is in the list of users who liked the post
         if connectedUser in post.likes.values_list('username', flat=True):
             liked = True
         else:
@@ -138,10 +139,19 @@ def posts(request, posts):
 
         serialized_posts.append(serialized_post)
 
+    if page_obj.has_previous():
+        previous_page = page_obj.previous_page_number()
+    else:
+        previous_page = None
+    if page_obj.has_next():
+        next_page = page_obj.next_page_number()
+    else:
+        next_page = None
+
     # Create a dictionary to hold pagination information and the posts array
     response_data = {
-        'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
-        'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
+        'next_page_number': next_page,
+        'previous_page_number': previous_page,
         'count': paginator.count,
         'posts': serialized_posts,
         'connectedUser': connectedUser,
@@ -159,16 +169,17 @@ def profile(request, username):
 
     followers_count = user.followers.count()
     following_count = user.following.count()
+    follower = request.user
 
     # Check if the current user is following the profile user
-    is_following = Follow.objects.filter(follower=request.user, followed=user).exists()
+    follow = Follow.objects.filter(follower=follower, followed=user).exists()
 
     connectedUser = request.user.username
 
     response_data = {
         'followers_count': followers_count,
         'following_count': following_count,
-        'is_following': is_following,
+        'is_following': follow,
         'connectedUser': connectedUser
     }
 
@@ -177,16 +188,23 @@ def profile(request, username):
 
 @login_required
 def follow_user(request, username):
+    user = request.user
     if request.method == 'POST':
-        user_to_follow = User.objects.get(username=username)
-        if request.user != user_to_follow:
-            Follow.objects.get_or_create(follower=request.user, followed=user_to_follow)
-            return JsonResponse({"message": "Successfully followed user."}, status=200)
-        return JsonResponse({"error": "You cannot follow yourself."}, status=400)
+        follow = User.objects.get(username=username)
+        if user != follow:
+            Follow.objects.get_or_create(follower=user, followed=follow)
+            return JsonResponse({
+                "message": "Successfully followed user."
+            }, status=200)
+        return JsonResponse({
+            "error": "You cannot follow yourself."
+        }, status=400)
     elif request.method == 'DELETE':
-        user_to_unfollow = User.objects.get(username=username)
-        Follow.objects.filter(follower=request.user, followed=user_to_unfollow).delete()
-        return JsonResponse({"message": "Successfully unfollowed user."}, status=200)
+        unfollow = User.objects.get(username=username)
+        Follow.objects.filter(follower=user, followed=unfollow).delete()
+        return JsonResponse({
+            "message": "Successfully unfollowed user."
+        }, status=200)
     else:
         return JsonResponse({"error": "Invalid request method."}, status=400)
 

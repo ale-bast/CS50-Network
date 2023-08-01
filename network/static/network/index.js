@@ -257,7 +257,7 @@ function toggleLike(postId, like) {
     const url = `/like_post/${postId}/`;
 
     fetch(url, {
-        method: 'POST',
+        method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': csrftoken,
