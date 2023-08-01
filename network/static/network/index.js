@@ -139,7 +139,7 @@ function load_posts(posts, username, page=1) {
     postsView.style.display = 'block';
 
     // Set the url based on the posts and username
-    let url = `/posts/${posts}/`;
+    let url = `/posts/${posts}/?`;
 
     // Set the page title based on the page
     const title = posts.charAt(0).toUpperCase() + posts.slice(1); 
@@ -151,7 +151,7 @@ function load_posts(posts, username, page=1) {
     else if (posts === 'profile') {
         document.querySelector('#new-post').style.display = 'none';
         document.querySelector('#all-posts').innerHTML = `<h1>${title}</h1>`;
-        url += `?username=${username}&`;
+        url += `username=${username}&`;
     }
     else {
         document.querySelector('#new-post').style.display = 'none';
@@ -160,7 +160,7 @@ function load_posts(posts, username, page=1) {
     }
 
     // Append page number to the URL for pagination
-    url += `?page=${page}`;
+    url += `page=${page}`;
 
     // Fetch posts from the server
     fetch(url)
@@ -207,7 +207,6 @@ function load_posts(posts, username, page=1) {
                     get_profile(username);
                 });
 
-                // After appending the postBox to the postsView element in the loop
                 const editLink = postBox.querySelector('#edit');
                 if (editLink) {
                     editLink.addEventListener('click', function (event) {
@@ -248,7 +247,7 @@ function load_posts(posts, username, page=1) {
 
             // Append all post boxes from the document fragment to the postsView element at once
             postsView.appendChild(postFragment);
-            pagination(data, page);
+            pagination(data, page, posts, username);
         });
 }
 
@@ -324,48 +323,55 @@ function saveEditedPost(postId, editedContent) {
         });
 }
 
-function pagination(data, page) {
+function pagination(data, page, posts, username) {
 
     // Calculate total number of pages
     const totalPages = Math.ceil(data.count / 10); // Assuming 10 posts per page, adjust as needed.
 
+    // Check if there are posts available
+    if (totalPages > 1) {
         // Create Next and Previous buttons based on pagination data
-    // Create the pagination list
-    const paginationList = document.createElement('ul');
-    paginationList.classList.add('pagination');
+        // Create the pagination list
+        const paginationList = document.createElement('ul');
+        paginationList.classList.add('pagination');
 
-    // Create Previous button
-    if (data.previous_page_number) {
-        const previousBtn = createPaginationButton('Previous', data.previous_page_number);
-        paginationList.appendChild(previousBtn);
-    }
-
-    // Create page number buttons
-    for (let i = 1; i <= totalPages; i++) {
-        const pageBtn = createPaginationButton(i, i);
-        if (i === page) {
-            pageBtn.classList.add('active');
+        // Create Previous button
+        if (data.previous_page_number) {
+            const previousBtn = createPaginationButton('Previous', data.previous_page_number, posts, username);
+            paginationList.appendChild(previousBtn);
         }
-        paginationList.appendChild(pageBtn);
-    }
 
-    // Create Next button
-    if (data.next_page_number) {
-        const nextBtn = createPaginationButton('Next', data.next_page_number);
-        paginationList.appendChild(nextBtn);
-    }
+        // Create page number buttons
+        for (let i = 1; i <= totalPages; i++) {
+            const pageBtn = createPaginationButton(i, i, posts, username);
+            if (i === page) {
+                pageBtn.classList.add('active');
+            }
+            paginationList.appendChild(pageBtn);
+        }
 
-    // Replace the previous pagination list with the updated one
-    const oldPaginationList = document.querySelector('.pagination');
-    if (oldPaginationList) {
-        oldPaginationList.replaceWith(paginationList);
-    } else {
-        // If no pagination list exists, append the new one
-        document.querySelector('#posts-view').appendChild(paginationList);
+        // Create Next button
+        if (data.next_page_number) {
+            const nextBtn = createPaginationButton('Next', data.next_page_number, posts, username);
+            paginationList.appendChild(nextBtn);
+        }
+
+        // Replace the previous pagination list with the updated one
+        const oldPaginationList = document.querySelector('.pagination');
+        if (oldPaginationList) {
+            oldPaginationList.replaceWith(paginationList);
+        } else {
+            // If no pagination list exists, append the new one
+            document.querySelector('#posts-view').appendChild(paginationList);
+        }
     }
 }
 
-function createPaginationButton(text, page) {
+function createPaginationButton(text, page, posts, username) {
+    let user = null
+    if (posts === 'profile') {
+        user = username
+    }
     const pageBtn = document.createElement('li');
     pageBtn.classList.add('page-item');
     const pageLink = document.createElement('a');
@@ -373,7 +379,7 @@ function createPaginationButton(text, page) {
     pageLink.textContent = text;
     pageBtn.appendChild(pageLink);
     pageBtn.addEventListener('click', function () {
-        load_posts('all', null, page);
+        load_posts(posts, user, page);
     });
     return pageBtn;
 }
