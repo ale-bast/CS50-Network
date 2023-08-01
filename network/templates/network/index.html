@@ -1,5 +1,24 @@
 {% extends "network/layout.html" %}
+{% load static %}
 
 {% block body %}
-    TODO
+    <div id="all-posts">
+    </div>
+    <div class="card" id="new-post">
+        <div class="card-body">
+            <h3>New Post</h3>
+            <form id="post-form">
+                {% csrf_token %}
+                <textarea class="form-control" id="post-content"></textarea>
+                <input type="submit" class="btn btn-primary" value="Post"/>
+            </form>
+        </div>
+    </div>
+    <div id="profile-view">
+    </div>
+    <div id="posts-view">
+    </div>
+{% endblock %}
+{% block script %}
+    <script src="{% static 'network/index.js' %}"></script>
 {% endblock %}
